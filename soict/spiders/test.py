@@ -51,13 +51,14 @@ class Teacher(scrapy.Item):
 
     proprietary = scrapy.Field()
 
+    link = scrapy.Field()
 
 class AIOSpider(CrawlSpider):
     name = "test"
     base_url = 'soict.hust.edu.vn'
-    le = LinkExtractor(restrict_xpaths =[ './/h2[@class = "entry-title no-margin"]/a'] ) #restrict_xpaths =[ './/h2[@class = "entry-title no-margin"]/a']
+    le = LinkExtractor(restrict_xpaths =[ './/h2[@class = "entry-title no-margin"]/a'] ) 
     start_urls = [
-            'https://soict.hust.edu.vn/ts-michel-toulouse.html'
+            'https://soict.hust.edu.vn/pgs-la-the-vinh.html'
         ]
     def start_requests(self):
         for url in self.start_urls:
@@ -76,30 +77,35 @@ class AIOSpider(CrawlSpider):
         if item['name'] == None : 
             item['name'] = response.xpath('//p[@class = "lead"]/span/b/text()').get()
 
+        try:
+            item['designation'] = response.xpath('//p/strong/text()')
+            if item['designation'] == [] :
+                item['designation'] = response.xpath('//p/b/text()')
+            if item['designation'] == [] :
+                item['designation'] = response.xpath('//h4/strong/text()')
+            if item['designation'] == [] :
+                item['designation'] = response.xpath('//p/strong/span/text()')
+        except:
+            pass
 
-        item['designation'] = response.xpath('//p/strong/text()')
-        if item['designation'] == [] :
-            item['designation'] = response.xpath('//p/b/text()')
-        if item['designation'] == [] :
-            item['designation'] = response.xpath('//h4/strong/text()')
-        if item['designation'] == [] :
-            item['designation'] = response.xpath('//p/strong/span/text()')
-        
-        if item['name'] not in ['Nguyễn An Hưng', 'Michel Toulouse']:
-            item['academicCareer'] = []
-            temp = response.xpath('//div[@class = "col-inner"]')[0]
-            i = 0
-            while True:
-                s = temp.xpath("//p/text()").getall()[i].replace('\n','')
-                if ( ("Email" not in s) ) :
-                    if s != "":
-                        item['academicCareer'].append(s)
-                    i+=1
-                else:
-                    break
-        else:
-            temp = response.xpath('//div[@class = "col-inner"]/p[@class = "lead"]/following-sibling::div/text()')
-            item['academicCareer'] = [s.get() for s in temp if "Email" not in s]
+        try:
+            if item['name'] not in ['Nguyễn An Hưng', 'Michel Toulouse']:
+                item['academicCareer'] = []
+                temp = response.xpath('//div[@class = "col-inner"]')[0]
+                i = 0
+                while True:
+                    s = temp.xpath("//p/text()").getall()[i].replace('\n','')
+                    if ( ("Email" not in s) and 'muriel' not in s) :
+                        if s != "":
+                            item['academicCareer'].append(s)
+                        i+=1
+                    else:
+                        break
+            else:
+                temp = response.xpath('//div[@class = "col-inner"]/p[@class = "lead"]/following-sibling::div/text()')
+                item['academicCareer'] = [s for s in temp.getall() if "Email" not in s]
+        except:
+            pass
 
         try:
             spans = response.xpath('//div[@class = "container section-title-container"]//h3//span[text() = "Bằng sáng chế"]/ancestor::div[@class = "container section-title-container"]/following-sibling::ul[1]/li/text()')
